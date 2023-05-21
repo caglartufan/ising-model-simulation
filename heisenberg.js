@@ -1,4 +1,4 @@
-var L = 2;
+var L = 32;
 var N = L*L;
 var J = 1;
 var T = 0;
@@ -9,7 +9,6 @@ var energyValues = new Array();
 var magnetizationValues = new Array();
 
 var maxSteps = 1000*N;
-var isFinished = false;
 var stepsCounter = 0;
 
 // Vector operations
@@ -28,6 +27,18 @@ function addVectors(...vectors) {
     );
 };
 
+function flipVector(vector) {
+    return vector.map(
+        component => -component
+    );
+};
+
+function absVector(vector) {
+    return vector.map(
+        component => Math.abs(component)
+    );
+};
+
 function magnitude(vector) {
     return Math.sqrt(
         Math.pow(vector[0], 2)
@@ -36,34 +47,8 @@ function magnitude(vector) {
     );
 };
 
-// Transition probability calcualtion
-function transitionProbability(t, neighboringSpins) {
-    t=(t+1)/4;
-    let e4 = Math.exp(-4/t);
-    let e8 = Math.pow(e4, 2);
-    let c = 0;
-
-    if(neighboringSpins == 0) {
-        c = 0;
-    }
-    if(neighboringSpins == 2) {
-        c = e4;
-    }
-    if(neighboringSpins == 4) {
-        c = e8;
-    }
-    if(neighboringSpins == -2) {
-        c = 1/e4;
-    }
-    if(neighboringSpins == -4) {
-        c = 1/e8;
-    }
-
-    return c;
-}
-
+// Initialize 2D lattice with random spins with magnitude of 1 unit
 function initializeSystem() {
-    // Initialize lattice with random unit vector spins
     for(let i = 0; i < L; i++) {
         for(let j = 0; j < L; j++) {
             let theta = Math.random()*(2*Math.PI);
@@ -86,12 +71,12 @@ function initializeSystem() {
 
 function calculateEnergyAndMagnetization() {
     let energy = 0;
-    let magnetization = 0;
+    let magnetization = [0, 0, 0];
 
     for(let i = 0; i < L; i++) {
         for(let j = 0; j < L; j++) {
             energy += -J*dotProduct(system[i][j], addVectors(system[(i-1+L)%L][j], system[i][(j+1)%L]));
-            // magnetization += system[i][j];
+            magnetization = addVectors(magnetization, system[i][j]);
         }
     }
 
@@ -105,32 +90,49 @@ function monteCarloStep() {
     let i = parseInt(L*Math.random());
     let j = parseInt(L*Math.random());
 
-    let neighboringSpins = system[(i-1+L)%L][j]
-                 + system[i][(j+1)%L]
-                 + system[(i+1)%L][j]
-                 + system[i][(j-1+L)%L];
-    let dE = system[i][j]*neighboringSpins;
-    let dM = 2*(-system[i][j]);
+    let neighboringSpins = addVectors(
+        system[(i-1+L)%L][j],
+        system[i][(j+1)%L],
+        system[(i+1)%L][j],
+        system[i][(j-1+L)%L]
+    );
+    let dE = 2*J*dotProduct(system[i][j], neighboringSpins);
+    let dM = flipVector(system[i][j]).map(component => 2*component);
 
     if(dE <= 0) {
-        system[i][j] = -system[i][j];
-        energyValues.push(energyValues[stepsCouter]+dE);
-        magnetizationValues.push(magnetizationValues[stepsCouter]+dM);
+        system[i][j] = flipVector(system[i][j]);
+        energyValues.push(energyValues[stepsCounter]+dE);
+        magnetizationValues.push(addVectors(magnetizationValues[stepsCounter], dM));
     } else {
-        if(Math.random() < transitionProbability(T, neighboringSpins)) {
-            system[i][j] = -system[i][j];
-            energyValues.push(energyValues[stepsCouter]+dE);
-            magnetizationValues.push(magnetizationValues[stepsCouter]+dM);
+        if(Math.random() < Math.exp(-(2*J*dotProduct(absVector(system[i][j]), neighboringSpins))/(k_B*T))) {
+            system[i][j] = flipVector(system[i][j]);
+            energyValues.push(energyValues[stepsCounter]+dE);
+            magnetizationValues.push(addVectors(magnetizationValues[stepsCounter], dM));
         } else {
-            energyValues.push(energyValues[stepsCouter]);
-            magnetizationValues.push(magnetizationValues[stepsCouter]);
+            energyValues.push(energyValues[stepsCounter]);
+            magnetizationValues.push(magnetizationValues[stepsCounter]);
         }
     }
-    stepsCouter++;
+    stepsCounter++;
 };
 
-initializeSystem();
-console.log(system.map(
-    row => row.map(spin => [...spin, magnitude(spin)])
-));
-console.log(energyValues);
+for(let t = 0; t < 21; t++) {
+    T = t/4;
+    stepsCounter = 0;
+    energyValues = new Array();
+    magnetizationValues = new Array();
+    initializeSystem();
+
+    while(stepsCounter < maxSteps) {
+        monteCarloStep();
+    }
+    
+    let avgEnergy = energyValues.reduce((sum, value) => sum + value, 0)/maxSteps;
+    let avgMagnetization = magnetizationValues
+        .reduce((sum, value) => addVectors(sum, value), [0, 0, 0])
+        .map(component => component/maxSteps);
+    
+    console.log(`Temperature: ${T}`);
+    console.log(`Average Energy: ${avgEnergy}`);
+    console.log(`Average Magnetization: ${magnitude(avgMagnetization)}`);
+}

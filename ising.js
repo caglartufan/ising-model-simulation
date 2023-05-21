@@ -118,8 +118,8 @@ function update() {
             console.log(`Average Energy: ${avgEnergy}`);
             console.log(`Average Magnetization: ${avgMagnetization}`);
 
-            if(T < 20) {
-                T++;
+            if(T < 5) {
+                T += 0.25;
                 jStart = 345;
                 stepsCouter = 0;
                 energyValues = new Array();
@@ -164,32 +164,6 @@ var system = Array.from(new Array(L), () => new Array(L));
 var energyValues = new Array();
 var magnetizationValues = new Array();
 var stepsCouter = 0;
-
-// Transition probability calcualtion
-function transitionProbability(t, neighboringSpins) {
-    t=(t+1)/4;
-    let e4 = Math.exp(-4/t);
-    let e8 = Math.pow(e4, 2);
-    let c = 0;
-
-    if(neighboringSpins == 0) {
-        c = 0;
-    }
-    if(neighboringSpins == 2) {
-        c = e4;
-    }
-    if(neighboringSpins == 4) {
-        c = e8;
-    }
-    if(neighboringSpins == -2) {
-        c = 1/e4;
-    }
-    if(neighboringSpins == -4) {
-        c = 1/e8;
-    }
-
-    return c;
-}
 
 // Ising model related functions
 function initializeSystem() {
@@ -239,7 +213,7 @@ function monteCarloStep() {
                  + system[i][(j+1)%L]
                  + system[(i+1)%L][j]
                  + system[i][(j-1+L)%L];
-    let dE = system[i][j]*neighboringSpins;
+    let dE = 2*J*system[i][j]*neighboringSpins;
     let dM = 2*(-system[i][j]);
 
     if(dE <= 0) {
@@ -247,7 +221,7 @@ function monteCarloStep() {
         energyValues.push(energyValues[stepsCouter]+dE);
         magnetizationValues.push(magnetizationValues[stepsCouter]+dM);
     } else {
-        if(Math.random() < transitionProbability(T, neighboringSpins)) {
+        if(Math.random() < Math.exp(-(dE/system[i][j])/(k_B*T))) {
             system[i][j] = -system[i][j];
             energyValues.push(energyValues[stepsCouter]+dE);
             magnetizationValues.push(magnetizationValues[stepsCouter]+dM);
