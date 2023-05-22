@@ -1,3 +1,157 @@
+// Canvas related constants
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const latticeLength = 500;
+const latticeOffsetX = 2;
+const latticeOffsetY = 2;
+const latticeLineWidth = 1;
+const graphWidth = 500;
+const graphHeight = 250;
+const graphOffsetX = latticeOffsetX+(2*latticeLineWidth)+latticeLength+20;
+const graphOffsetY = latticeOffsetY;
+const graphBorderWidth = 1;
+const graphPaddingX = 30;
+const graphPaddingY = 30;
+var fps = 60;
+var frameInterval = 1000/fps;
+var startTime, now, then, elapsed;
+
+// Canvas related functions
+function renderLattice() {
+    // Render borders of lattice
+    ctx.beginPath();
+    ctx.lineWidth = latticeLineWidth;
+    ctx.strokeStyle = 'black';
+    ctx.moveTo(latticeOffsetX, latticeOffsetY-latticeLineWidth);
+    ctx.lineTo(latticeLength+latticeOffsetX, latticeOffsetY-latticeLineWidth);
+    ctx.moveTo(latticeLength+latticeOffsetX+latticeLineWidth, latticeOffsetY-(2*latticeLineWidth));
+    ctx.lineTo(latticeLength+latticeOffsetX+latticeLineWidth, latticeLength+latticeOffsetY);
+    ctx.moveTo(latticeLength+latticeOffsetX+(2*latticeLineWidth), latticeLength+latticeOffsetY+latticeLineWidth);
+    ctx.lineTo(latticeOffsetX, latticeLength+latticeOffsetY+latticeLineWidth);
+    ctx.moveTo(latticeOffsetX-latticeLineWidth, latticeLength+latticeOffsetY+(2*latticeLineWidth));
+    ctx.lineTo(latticeOffsetX-latticeLineWidth, latticeOffsetY-(2*latticeLineWidth));
+    ctx.stroke();
+    ctx.closePath();
+
+    // Render each spin as red (up) and black (down) squares
+    let sideLength = latticeLength/L;
+    for(let i = 0; i < L; i++) {
+        for(let j = 0; j < L; j++) {
+            if(system[i][j] == 1) {
+                ctx.fillStyle = 'blue';
+            } else {
+                ctx.fillStyle = 'black';
+            }
+
+            ctx.fillRect(latticeOffsetX+(j*sideLength), latticeOffsetY+(i*sideLength), sideLength, sideLength);
+        }
+    }
+};
+
+function renderGraph() {
+    // Render borders of graph
+    ctx.beginPath();
+    ctx.lineWidth = graphBorderWidth;
+    ctx.strokeStyle = 'black';
+    ctx.moveTo(graphOffsetX, graphOffsetY-graphBorderWidth);
+    ctx.lineTo(graphWidth+graphOffsetX, graphOffsetY-graphBorderWidth);
+    ctx.moveTo(graphWidth+graphOffsetX+graphBorderWidth, graphOffsetY-(2*graphBorderWidth));
+    ctx.lineTo(graphWidth+graphOffsetX+graphBorderWidth, graphHeight+graphOffsetY);
+    ctx.moveTo(graphWidth+graphOffsetX+(2*graphBorderWidth), graphHeight+graphOffsetY+graphBorderWidth);
+    ctx.lineTo(graphOffsetX, graphHeight+graphOffsetY+graphBorderWidth);
+    ctx.moveTo(graphOffsetX-graphBorderWidth, graphHeight+graphOffsetY+(2*graphBorderWidth));
+    ctx.lineTo(graphOffsetX-graphBorderWidth, graphOffsetY-(2*graphBorderWidth));
+    ctx.stroke();
+    ctx.closePath();
+
+    // Render graph axes
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'red';
+    ctx.moveTo(graphOffsetX+graphBorderWidth+graphPaddingX-4, graphOffsetY+graphPaddingY+10);
+    ctx.lineTo(graphOffsetX+graphBorderWidth+graphPaddingX, graphOffsetY+graphPaddingY);
+    ctx.lineTo(graphOffsetX+graphBorderWidth+graphPaddingX+4, graphOffsetY+graphPaddingY+10);
+    ctx.moveTo(graphOffsetX+graphBorderWidth+graphPaddingX, graphOffsetY+graphPaddingY);
+    ctx.lineTo(graphOffsetX+graphBorderWidth+graphPaddingX, graphOffsetY+graphHeight-graphPaddingY);
+    ctx.moveTo(graphOffsetX+graphPaddingX, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth);
+    ctx.lineTo(graphOffsetX+graphWidth-graphPaddingX, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth);
+    ctx.moveTo(graphOffsetX+graphWidth-graphPaddingX-10, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth-4);
+    ctx.lineTo(graphOffsetX+graphWidth-graphPaddingX, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth);
+    ctx.lineTo(graphOffsetX+graphWidth-graphPaddingX-10, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth+4);
+    ctx.stroke();
+    ctx.closePath();
+};
+
+function startAnimation() {
+    frameInterval = 1000/fps;
+    then = Date.now();
+    startTime = then;
+    update();
+}
+
+function update() {
+    if(!isFinished) {
+        window.requestAnimationFrame(update);
+    }
+
+    now = Date.now();
+    elapsed = now - then;
+
+    if(elapsed > frameInterval) {
+        then = now-(elapsed%frameInterval);
+
+        if(stepsCounter < maxSteps) {
+            for(let i = 0; i < N*10; i++) {
+                if(stepsCounter < maxSteps) {
+                    monteCarloStep();
+                }
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            renderLattice();
+            renderGraph();
+            updateUIElements();
+        } else {
+            let avgEnergy = energyValues.reduce((sum, value) => sum + value, 0)/maxSteps;
+            let avgMagnetization = magnetizationValues
+                .reduce((sum, value) => addVectors(sum, value), [0, 0, 0])
+                .map(component => component/maxSteps);
+
+            console.log(`Temperature: ${T}`);
+            console.log(`Average Energy: ${avgEnergy}`);
+            console.log(`Average Magnetization: ${avgMagnetization}`);
+
+            if(T <= 5) {
+                T += 0.25;
+                stepsCounter = 0;
+                energyValues = new Array();
+                magnetizationValues = new Array();
+                initializeSystem();
+            } else {
+                isFinished = true;
+            }
+        }
+    }
+}
+
+// UI related constants
+const spanNumberOfSpins = document.getElementById('number-of-spins');
+const spanExchangeConstant = document.getElementById('exchange-constant');
+const spanTemperature = document.getElementById('temperature');
+const spanEnergy = document.getElementById('energy');
+const spanMagnetization = document.getElementById('magnetization');
+const spanSteps = document.getElementById('steps');
+
+// UI related functions
+function updateUIElements() {
+    // Update span texts
+    spanNumberOfSpins.innerText = N;
+    spanExchangeConstant.innerText = J;
+    spanTemperature.innerText = T;
+    spanEnergy.innerText = energyValues[stepsCounter];
+    spanMagnetization.innerText = magnetizationValues[stepsCounter];
+    spanSteps.innerText = stepsCounter;
+};
+
 var L = 32;
 var N = L*L;
 var J = 1;
@@ -10,6 +164,7 @@ var magnetizationValues = new Array();
 
 var maxSteps = 1000*N;
 var stepsCounter = 0;
+var isFinished = false;
 
 // Vector operations
 function dotProduct(vectorA, vectorB) {
@@ -116,23 +271,26 @@ function monteCarloStep() {
     stepsCounter++;
 };
 
-for(let t = 0; t < 21; t++) {
-    T = t/4;
-    stepsCounter = 0;
-    energyValues = new Array();
-    magnetizationValues = new Array();
-    initializeSystem();
+// for(let t = 0; t < 21; t++) {
+//     T = t/4;
+//     stepsCounter = 0;
+//     energyValues = new Array();
+//     magnetizationValues = new Array();
+//     initializeSystem();
 
-    while(stepsCounter < maxSteps) {
-        monteCarloStep();
-    }
+//     while(stepsCounter < maxSteps) {
+//         monteCarloStep();
+//     }
     
-    let avgEnergy = energyValues.reduce((sum, value) => sum + value, 0)/maxSteps;
-    let avgMagnetization = magnetizationValues
-        .reduce((sum, value) => addVectors(sum, value), [0, 0, 0])
-        .map(component => component/maxSteps);
+//     let avgEnergy = energyValues.reduce((sum, value) => sum + value, 0)/maxSteps;
+//     let avgMagnetization = magnetizationValues
+//         .reduce((sum, value) => addVectors(sum, value), [0, 0, 0])
+//         .map(component => component/maxSteps);
     
-    console.log(`Temperature: ${T}`);
-    console.log(`Average Energy: ${avgEnergy}`);
-    console.log(`Average Magnetization: ${magnitude(avgMagnetization)}`);
-}
+//     console.log(`Temperature: ${T}`);
+//     console.log(`Average Energy: ${avgEnergy}`);
+//     console.log(`Average Magnetization: ${magnitude(avgMagnetization)}`);
+// };
+
+initializeSystem();
+startAnimation();
