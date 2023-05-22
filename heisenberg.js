@@ -1,7 +1,7 @@
 // Canvas related constants
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-const latticeLength = 500;
+const latticeLength = 600;
 const latticeOffsetX = 2;
 const latticeOffsetY = 2;
 const latticeLineWidth = 1;
@@ -18,68 +18,54 @@ var startTime, now, then, elapsed;
 
 // Canvas related functions
 function renderLattice() {
-    // Render borders of lattice
+    let sideLength = latticeLength/L;
+
+    // Render grids
+    let gridPosX = latticeOffsetX;
+    let gridPosY = latticeOffsetY;
     ctx.beginPath();
     ctx.lineWidth = latticeLineWidth;
     ctx.strokeStyle = 'black';
-    ctx.moveTo(latticeOffsetX, latticeOffsetY-latticeLineWidth);
-    ctx.lineTo(latticeLength+latticeOffsetX, latticeOffsetY-latticeLineWidth);
-    ctx.moveTo(latticeLength+latticeOffsetX+latticeLineWidth, latticeOffsetY-(2*latticeLineWidth));
-    ctx.lineTo(latticeLength+latticeOffsetX+latticeLineWidth, latticeLength+latticeOffsetY);
-    ctx.moveTo(latticeLength+latticeOffsetX+(2*latticeLineWidth), latticeLength+latticeOffsetY+latticeLineWidth);
-    ctx.lineTo(latticeOffsetX, latticeLength+latticeOffsetY+latticeLineWidth);
-    ctx.moveTo(latticeOffsetX-latticeLineWidth, latticeLength+latticeOffsetY+(2*latticeLineWidth));
-    ctx.lineTo(latticeOffsetX-latticeLineWidth, latticeOffsetY-(2*latticeLineWidth));
-    ctx.stroke();
-    ctx.closePath();
-
-    // Render each spin as red (up) and black (down) squares
-    let sideLength = latticeLength/L;
-    for(let i = 0; i < L; i++) {
-        for(let j = 0; j < L; j++) {
-            if(system[i][j] == 1) {
-                ctx.fillStyle = 'blue';
-            } else {
-                ctx.fillStyle = 'black';
-            }
-
-            ctx.fillRect(latticeOffsetX+(j*sideLength), latticeOffsetY+(i*sideLength), sideLength, sideLength);
+    while(
+        (gridPosX < (latticeLength+latticeOffsetX+latticeLineWidth))
+        && (gridPosY < (latticeLength+latticeOffsetY+latticeLineWidth))
+    ) {
+        if(gridPosY < (latticeLength+latticeOffsetY+latticeLineWidth)) {
+            ctx.moveTo(latticeOffsetX, gridPosY);
+            ctx.lineTo(latticeOffsetX+latticeLength, gridPosY);
+            
+            gridPosY += sideLength;
+        }
+        if(gridPosX < (latticeLength+latticeOffsetX+latticeLineWidth)) {
+            ctx.moveTo(gridPosX, latticeOffsetY);
+            ctx.lineTo(gridPosX, latticeOffsetY+latticeLength);
+            
+            gridPosX += sideLength;
         }
     }
-};
-
-function renderGraph() {
-    // Render borders of graph
-    ctx.beginPath();
-    ctx.lineWidth = graphBorderWidth;
-    ctx.strokeStyle = 'black';
-    ctx.moveTo(graphOffsetX, graphOffsetY-graphBorderWidth);
-    ctx.lineTo(graphWidth+graphOffsetX, graphOffsetY-graphBorderWidth);
-    ctx.moveTo(graphWidth+graphOffsetX+graphBorderWidth, graphOffsetY-(2*graphBorderWidth));
-    ctx.lineTo(graphWidth+graphOffsetX+graphBorderWidth, graphHeight+graphOffsetY);
-    ctx.moveTo(graphWidth+graphOffsetX+(2*graphBorderWidth), graphHeight+graphOffsetY+graphBorderWidth);
-    ctx.lineTo(graphOffsetX, graphHeight+graphOffsetY+graphBorderWidth);
-    ctx.moveTo(graphOffsetX-graphBorderWidth, graphHeight+graphOffsetY+(2*graphBorderWidth));
-    ctx.lineTo(graphOffsetX-graphBorderWidth, graphOffsetY-(2*graphBorderWidth));
     ctx.stroke();
     ctx.closePath();
 
-    // Render graph axes
-    ctx.beginPath();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'red';
-    ctx.moveTo(graphOffsetX+graphBorderWidth+graphPaddingX-4, graphOffsetY+graphPaddingY+10);
-    ctx.lineTo(graphOffsetX+graphBorderWidth+graphPaddingX, graphOffsetY+graphPaddingY);
-    ctx.lineTo(graphOffsetX+graphBorderWidth+graphPaddingX+4, graphOffsetY+graphPaddingY+10);
-    ctx.moveTo(graphOffsetX+graphBorderWidth+graphPaddingX, graphOffsetY+graphPaddingY);
-    ctx.lineTo(graphOffsetX+graphBorderWidth+graphPaddingX, graphOffsetY+graphHeight-graphPaddingY);
-    ctx.moveTo(graphOffsetX+graphPaddingX, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth);
-    ctx.lineTo(graphOffsetX+graphWidth-graphPaddingX, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth);
-    ctx.moveTo(graphOffsetX+graphWidth-graphPaddingX-10, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth-4);
-    ctx.lineTo(graphOffsetX+graphWidth-graphPaddingX, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth);
-    ctx.lineTo(graphOffsetX+graphWidth-graphPaddingX-10, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth+4);
-    ctx.stroke();
-    ctx.closePath();
+    // Render each spin as a vector with projection on x-y plane with anti-red and red color range indicating z-axis
+    for(let i = 0; i < L; i++) {
+        for(let j = 0; j < L; j++) {
+            let xMapped = system[i][j][0]*(sideLength/2);
+            let yMapped = system[i][j][1]*(-sideLength/2);
+            let magXY = magnitude(system[i][j].map((component, index) => index == 2 ? 0 : component));
+            let zCoordinate = system[i][j][2];
+            let centerX = latticeOffsetX+((j+0.5)*sideLength);
+            let centerY = latticeOffsetY+((i+0.5)*sideLength);
+            let angleBetweenX = Math.acos(system[i][j][0])*(180/Math.PI);
+            let angleBetweenY = Math.acos(system[i][j][1])*(180/Math.PI);
+            ctx.beginPath();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgb(${zCoordinate > 0 ? zCoordinate*255 : 0}, ${zCoordinate < 0 ? -zCoordinate*255 : 0}, 0)`;
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX+xMapped, centerY+yMapped);
+            ctx.stroke();
+            ctx.closePath();
+        }
+    }
 };
 
 function startAnimation() {
@@ -108,27 +94,9 @@ function update() {
             }
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             renderLattice();
-            renderGraph();
             updateUIElements();
         } else {
-            let avgEnergy = energyValues.reduce((sum, value) => sum + value, 0)/maxSteps;
-            let avgMagnetization = magnetizationValues
-                .reduce((sum, value) => addVectors(sum, value), [0, 0, 0])
-                .map(component => component/maxSteps);
-
-            console.log(`Temperature: ${T}`);
-            console.log(`Average Energy: ${avgEnergy}`);
-            console.log(`Average Magnetization: ${avgMagnetization}`);
-
-            if(T <= 5) {
-                T += 0.25;
-                stepsCounter = 0;
-                energyValues = new Array();
-                magnetizationValues = new Array();
-                initializeSystem();
-            } else {
-                isFinished = true;
-            }
+            continueButton.removeAttribute('disabled');
         }
     }
 }
@@ -140,6 +108,16 @@ const spanTemperature = document.getElementById('temperature');
 const spanEnergy = document.getElementById('energy');
 const spanMagnetization = document.getElementById('magnetization');
 const spanSteps = document.getElementById('steps');
+const continueButton = document.getElementById('continue');
+
+continueButton.addEventListener('click', function(event) {
+    this.setAttribute('disabled', true);
+    T += 0.25;
+    stepsCounter = 0;
+    energyValues = new Array();
+    magnetizationValues = new Array();
+    initializeSystem();
+});
 
 // UI related functions
 function updateUIElements() {
@@ -147,12 +125,16 @@ function updateUIElements() {
     spanNumberOfSpins.innerText = N;
     spanExchangeConstant.innerText = J;
     spanTemperature.innerText = T;
-    spanEnergy.innerText = energyValues[stepsCounter];
-    spanMagnetization.innerText = magnetizationValues[stepsCounter];
+    spanEnergy.innerText = (energyValues.reduce((total, value) => total+value,0)/stepsCounter).toFixed(2);
+    spanMagnetization.innerText = magnitude(
+        magnetizationValues
+            .reduce((total, value) => addVectors(total, value), [0, 0, 0])
+            .map(component => component/stepsCounter)
+    ).toFixed(2);
     spanSteps.innerText = stepsCounter;
 };
 
-var L = 32;
+var L = 20;
 var N = L*L;
 var J = 1;
 var T = 0;
@@ -206,8 +188,8 @@ function magnitude(vector) {
 function initializeSystem() {
     for(let i = 0; i < L; i++) {
         for(let j = 0; j < L; j++) {
-            let theta = Math.random()*(2*Math.PI);
-            let phi = Math.acos(2*Math.random()-1);
+            let theta = Math.random()*(2*Math.PI);  // 0-2pi radian
+            let phi = Math.acos(2*Math.random()-1); // 0-pi radian
 
             system[i][j] = [
                 Math.sin(theta)*Math.cos(phi),
@@ -260,6 +242,7 @@ function monteCarloStep() {
         magnetizationValues.push(addVectors(magnetizationValues[stepsCounter], dM));
     } else {
         if(Math.random() < Math.exp(-(2*J*dotProduct(absVector(system[i][j]), neighboringSpins))/(k_B*T))) {
+        // if(Math.random() < Math.exp(-(2*J*dotProduct(system[i][j], neighboringSpins))/(k_B*T))) {
             system[i][j] = flipVector(system[i][j]);
             energyValues.push(energyValues[stepsCounter]+dE);
             magnetizationValues.push(addVectors(magnetizationValues[stepsCounter], dM));
@@ -270,27 +253,6 @@ function monteCarloStep() {
     }
     stepsCounter++;
 };
-
-// for(let t = 0; t < 21; t++) {
-//     T = t/4;
-//     stepsCounter = 0;
-//     energyValues = new Array();
-//     magnetizationValues = new Array();
-//     initializeSystem();
-
-//     while(stepsCounter < maxSteps) {
-//         monteCarloStep();
-//     }
-    
-//     let avgEnergy = energyValues.reduce((sum, value) => sum + value, 0)/maxSteps;
-//     let avgMagnetization = magnetizationValues
-//         .reduce((sum, value) => addVectors(sum, value), [0, 0, 0])
-//         .map(component => component/maxSteps);
-    
-//     console.log(`Temperature: ${T}`);
-//     console.log(`Average Energy: ${avgEnergy}`);
-//     console.log(`Average Magnetization: ${magnitude(avgMagnetization)}`);
-// };
 
 initializeSystem();
 startAnimation();

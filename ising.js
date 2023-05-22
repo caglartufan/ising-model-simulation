@@ -1,7 +1,7 @@
 // Canvas related constants
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-const latticeLength = 500;
+const latticeLength = 640;
 const latticeOffsetX = 2;
 const latticeOffsetY = 2;
 const latticeLineWidth = 1;
@@ -48,40 +48,6 @@ function renderLattice() {
     }
 };
 
-function renderGraph() {
-    // Render borders of graph
-    ctx.beginPath();
-    ctx.lineWidth = graphBorderWidth;
-    ctx.strokeStyle = 'black';
-    ctx.moveTo(graphOffsetX, graphOffsetY-graphBorderWidth);
-    ctx.lineTo(graphWidth+graphOffsetX, graphOffsetY-graphBorderWidth);
-    ctx.moveTo(graphWidth+graphOffsetX+graphBorderWidth, graphOffsetY-(2*graphBorderWidth));
-    ctx.lineTo(graphWidth+graphOffsetX+graphBorderWidth, graphHeight+graphOffsetY);
-    ctx.moveTo(graphWidth+graphOffsetX+(2*graphBorderWidth), graphHeight+graphOffsetY+graphBorderWidth);
-    ctx.lineTo(graphOffsetX, graphHeight+graphOffsetY+graphBorderWidth);
-    ctx.moveTo(graphOffsetX-graphBorderWidth, graphHeight+graphOffsetY+(2*graphBorderWidth));
-    ctx.lineTo(graphOffsetX-graphBorderWidth, graphOffsetY-(2*graphBorderWidth));
-    ctx.stroke();
-    ctx.closePath();
-
-    // Render graph axes
-    ctx.beginPath();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'red';
-    ctx.moveTo(graphOffsetX+graphBorderWidth+graphPaddingX-4, graphOffsetY+graphPaddingY+10);
-    ctx.lineTo(graphOffsetX+graphBorderWidth+graphPaddingX, graphOffsetY+graphPaddingY);
-    ctx.lineTo(graphOffsetX+graphBorderWidth+graphPaddingX+4, graphOffsetY+graphPaddingY+10);
-    ctx.moveTo(graphOffsetX+graphBorderWidth+graphPaddingX, graphOffsetY+graphPaddingY);
-    ctx.lineTo(graphOffsetX+graphBorderWidth+graphPaddingX, graphOffsetY+graphHeight-graphPaddingY);
-    ctx.moveTo(graphOffsetX+graphPaddingX, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth);
-    ctx.lineTo(graphOffsetX+graphWidth-graphPaddingX, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth);
-    ctx.moveTo(graphOffsetX+graphWidth-graphPaddingX-10, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth-4);
-    ctx.lineTo(graphOffsetX+graphWidth-graphPaddingX, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth);
-    ctx.lineTo(graphOffsetX+graphWidth-graphPaddingX-10, graphOffsetY+graphHeight-graphPaddingY+graphBorderWidth+4);
-    ctx.stroke();
-    ctx.closePath();
-};
-
 function startAnimation() {
     frameInterval = 1000/fps;
     then = Date.now();
@@ -108,26 +74,9 @@ function update() {
             }
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             renderLattice();
-            renderGraph();
             updateUIElements();
         } else {
-            let avgEnergy = energyValues.reduce((sum, value) => sum + value, 0)/STEPS;
-            let avgMagnetization = magnetizationValues.reduce((sum, value) => sum + value, 0)/STEPS;
-
-            console.log(`Temperature: ${T}`);
-            console.log(`Average Energy: ${avgEnergy}`);
-            console.log(`Average Magnetization: ${avgMagnetization}`);
-
-            if(T < 5) {
-                T += 0.25;
-                jStart = 345;
-                stepsCouter = 0;
-                energyValues = new Array();
-                magnetizationValues = new Array();
-                initializeSystem();
-            } else {
-                isFinished = true;
-            }
+            continueButton.removeAttribute('disabled');
         }
     }
 }
@@ -139,6 +88,16 @@ const spanTemperature = document.getElementById('temperature');
 const spanEnergy = document.getElementById('energy');
 const spanMagnetization = document.getElementById('magnetization');
 const spanSteps = document.getElementById('steps');
+const continueButton = document.getElementById('continue');
+
+continueButton.addEventListener('click', function(event) {
+    this.setAttribute('disabled', true);
+    T += 0.25;
+    stepsCouter = 0;
+    energyValues = new Array();
+    magnetizationValues = new Array();
+    initializeSystem();
+});
 
 // UI related functions
 function updateUIElements() {
@@ -146,8 +105,8 @@ function updateUIElements() {
     spanNumberOfSpins.innerText = N;
     spanExchangeConstant.innerText = J;
     spanTemperature.innerText = T;
-    spanEnergy.innerText = energyValues[stepsCouter];
-    spanMagnetization.innerText = magnetizationValues[stepsCouter];
+    spanEnergy.innerText = (energyValues.reduce((total, value) => total+value, 0)/stepsCouter).toFixed(2);
+    spanMagnetization.innerText = (magnetizationValues.reduce((total, value) => total+value, 0)/stepsCouter).toFixed(2);
     spanSteps.innerText = stepsCouter;
 };
 

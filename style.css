@@ -1,0 +1,9 @@
+html {
+    font-family: "Computer Modern Serif", sans-serif;
+}
+
+#properties {
+    font-style: italic;
+    font-weight: bold;
+    margin-bottom: .5rem;
+}
