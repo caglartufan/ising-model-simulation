@@ -159,8 +159,8 @@ function calculateEnergyAndMagnetization() {
     }
 
     return {
-        energy,
-        magnetization
+        energy: energy,
+        magnetization: magnetization/N
     };
 };
 
@@ -173,7 +173,7 @@ function monteCarloStep() {
                  + system[(i+1)%L][j]
                  + system[i][(j-1+L)%L];
     let dE = 2*J*system[i][j]*neighboringSpins;
-    let dM = 2*(-system[i][j]);
+    let dM = 2*(-system[i][j])/N;
 
     if(dE <= 0) {
         system[i][j] = -system[i][j];

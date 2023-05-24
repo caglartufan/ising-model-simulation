@@ -218,8 +218,8 @@ function calculateEnergyAndMagnetization() {
     }
 
     return {
-        energy,
-        magnetization
+        energy: energy,
+        magnetization: magnetization.map(component => component/N)
     };
 };
 
@@ -234,7 +234,7 @@ function monteCarloStep() {
         system[i][(j-1+L)%L]
     );
     let dE = 2*J*dotProduct(system[i][j], neighboringSpins);
-    let dM = flipVector(system[i][j]).map(component => 2*component);
+    let dM = flipVector(system[i][j]).map(component => 2*component/N);
 
     if(dE <= 0) {
         system[i][j] = flipVector(system[i][j]);
