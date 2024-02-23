@@ -2,7 +2,7 @@
 
 ## :pencil: About the project
 
-This is my physics license thesis project. In this project I programmed Ising model and simulated it, generated output images for different parameters. Ising model is a model of ferromagnetism in statistical physics. Aimed output of this simulation is to show that magnetism of a material or atomic spin system tends to lower as the temperature of the system increases.
+This is my physics license thesis project. In this project I programmed Ising model and simulated it as a Monte Carlo simuation using Metropolis algorithm, generated output images for different parameters. Ising model is a model of ferromagnetism in statistical physics. Aimed output of this simulation is to show that magnetism of a material or atomic spin system tends to lower as the temperature of the system increases.
 
 ## :microscope: Technologies used
 
@@ -18,4 +18,4 @@ HTML, CSS, JS
 
 ## :dart: Gains
 
-- :white_check_mark: Monte Carlo simuation of Isising model
+- :white_check_mark: Monte Carlo simuation of Ising model using Metropolis algorithm
